@@ -5,8 +5,10 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { UserSchema, User } from 'src/models/user.schema';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule } from '@nestjs/config';
-import { JwtSecretProvider } from './jwt.config';
+import { JwtSecretProvider } from './jwt-secret.provider';
 import { UsersModule } from 'src/users/users.module';
+import { PassportModule } from '@nestjs/passport';
+import { LocalStrategy } from './local.strategy';
 
 /**
  * Модуль аутентификации.
@@ -46,9 +48,14 @@ import { UsersModule } from 'src/users/users.module';
       }),
     }),
     /**
-     * Модуль пользователей.
+     * Модуль пользователей. 
      */
-    UsersModule
+    UsersModule,
+
+    /**
+     * Модуль аутентификации. Вызывает AuthService для регистрации пользователя.
+     */
+    PassportModule
   ],
   controllers: [AuthController],
   providers: [
@@ -63,6 +70,8 @@ import { UsersModule } from 'src/users/users.module';
      * @see JwtSecretProvider - провайдер, возвращающий секрет для JWT.
      */
     JwtSecretProvider,
+
+    LocalStrategy,
   ],
   exports: [AuthService, JwtSecretProvider],
 })
