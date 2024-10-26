@@ -42,6 +42,6 @@
 
 ```
 npm install @nestjs/jwt @nestjs/passport passport bcryptjs mongoose
-npm install @types/passport-jwt @types/bcryptjs --save-dev
+npm install @types/passport-jwt
 npm i --save @nestjs/config
 ```
