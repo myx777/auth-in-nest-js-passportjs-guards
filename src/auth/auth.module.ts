@@ -19,9 +19,8 @@ import { JwtSecretProvider } from './jwt.config';
   imports: [
     /**
      * Модуль конфигурации для работы с переменными окружения.
-     * @see ConfigModule - позволяет загружать переменные из .env файла.
      */
-    ConfigModule,
+    ConfigModule.forRoot({isGlobal: true, envFilePath: '.development.env'}),
 
     /**
      * Подключение коллекции пользователей к MongoDB.
