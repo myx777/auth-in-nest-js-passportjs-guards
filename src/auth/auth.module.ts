@@ -6,6 +6,7 @@ import { UserSchema, User } from 'src/models/user.schema';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule } from '@nestjs/config';
 import { JwtSecretProvider } from './jwt.config';
+import { UsersModule } from 'src/users/users.module';
 
 /**
  * Модуль аутентификации.
@@ -44,6 +45,10 @@ import { JwtSecretProvider } from './jwt.config';
         signOptions: { expiresIn: '60s' },
       }),
     }),
+    /**
+     * Модуль пользователей.
+     */
+    UsersModule
   ],
   controllers: [AuthController],
   providers: [
