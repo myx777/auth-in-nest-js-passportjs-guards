@@ -4,63 +4,69 @@ import { Model } from 'mongoose';
 import { SigninDto } from 'src/dto/signin.dto';
 import { SignupDto } from 'src/dto/signup.dto';
 import { User } from 'src/models/user.schema';
-import { ConfigService } from '@nestjs/config';
 import { hashPassword, verifyPassword } from 'src/utils/hash.password';
+import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
 /**
- * Сервис аутентификации
+ * Сервис аутентификации.
  *
+ * Обеспечивает регистрацию, аутентификацию и генерацию JWT токена для пользователей.
  */
 export class AuthService {
   constructor(
     @InjectModel(User.name) private readonly authModel: Model<User>,
-    private readonly configService: ConfigService,
+    private readonly jwtService: JwtService,
   ) {}
 
-    /**
-   * Аутентификация пользователя
-   * 
-   * @param {SigninDto} signinDto - Данные для аутентификации пользователя
-   * @throws {BadRequestException} Если учетные данные неверны
-   * 
+  /**
+   * Аутентификация пользователя на основе email и пароля.
+   *
+   * @param {SigninDto} signinDto - DTO объект, содержащий email и пароль пользователя.
+   * @returns {string} Возвращает JWT токен, если аутентификация успешна.
+   * @throws {BadRequestException} Если учетные данные неверны (пользователь не найден или пароль неверный).
    */
-  async signin(signinDto: SigninDto) {
+  async signIn(signinDto: SigninDto): Promise<string> {
     const { email, password } = signinDto;
 
+    // Поиск пользователя в базе данных
     const findedUser = await this.authModel.findOne({ email });
-
     if (!findedUser) {
       throw new BadRequestException('User not found');
     }
 
-    const isPasswordValid = await verifyPassword(email, password);
+    // Проверка пароля пользователя
+    const isPasswordValid = await verifyPassword(password, findedUser.password);
+    if (!isPasswordValid) {
+      throw new BadRequestException('Wrong password');
+    }
 
-     if (!isPasswordValid) {
-         throw new BadRequestException('Wrong password');
-     }
-
-     return findedUser;
+    // Генерация и возврат JWT токена
+    const payload = { sub: findedUser._id, email: findedUser.email };
+    return this.jwtService.sign(payload);
   }
 
   /**
-   * Регистрация нового пользователя
+   * Регистрация нового пользователя и генерация JWT токена.
    *
-   * @param {SignupDto} signupDto - Данные для регистрации пользователя
-   * @throws {BadRequestException} Если пользователь с таким email уже существует
+   * @param {SignupDto} signupDto - DTO объект, содержащий данные нового пользователя (email, пароль, имя и фамилию).
+   * @returns {string} Возвращает JWT токен для зарегистрированного пользователя.
+   * @throws {BadRequestException} Если пользователь с таким email уже существует.
    */
-  async signup(signupDto: SignupDto) {
+  async signUp(signupDto: SignupDto): Promise<string> {
     const { email, password, firstName, lastName } = signupDto;
 
+    // Проверка существования пользователя с таким email
     const findedUser = await this.authModel.findOne({ email });
-
     if (findedUser) {
       throw new BadRequestException('User already exists');
     }
 
-    const saltLength = email.length;
+    // Хеширование пароля пользователя
+    const saltLength = email.length > 32 ? 32 : email.length <  16 ? 16 : email.length;
     const hashedPassword = await hashPassword(password, saltLength);
 
+    // Создание нового пользователя
     const newUser = new this.authModel({
       email,
       password: hashedPassword,
@@ -68,6 +74,10 @@ export class AuthService {
       lastName,
     });
 
+    // Сохранение пользователя в базе данных
     await newUser.save();
+
+    // Генерация и возврат JWT токена
+    return this.jwtService.sign({ sub: newUser._id, email: newUser.email });
   }
 }
